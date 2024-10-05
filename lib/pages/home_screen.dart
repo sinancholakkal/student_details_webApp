@@ -1,14 +1,17 @@
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:student_detiails/Alert/delete_student.dart';
 import 'package:student_detiails/Alert/update_student.dart';
+
 import 'package:student_detiails/color/colors.dart';
 import 'package:student_detiails/db/functions/data/data_model.dart';
 import 'package:student_detiails/db/functions/db_functions.dart';
 import 'package:student_detiails/pages/full_details_screen.dart';
+import 'package:student_detiails/pages/select_page.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -25,24 +28,23 @@ class _HomeScreenState extends State<HomeScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController searchController = TextEditingController();
   String? filter;
-  File? _image;
+  //Uint8List? _webImage;
+  ValueNotifier<Uint8List?> webImage = ValueNotifier(null);
 
-  ViewType viewType = ViewType.grid;
 
-  double asspet = 2 / 2;
 
   ImagePicker imagePicker = ImagePicker();
 
-  int cross = 2;
+
 
   Future<void> imagePickerFromGallery() async {
-    // Picking image from gallery
     final imgPicked = await imagePicker.pickImage(source: ImageSource.gallery);
-    setState(() {
-      if (imgPicked != null) {
-        _image = File(imgPicked.path);
-      }
-    });
+    if (imgPicked != null) {
+      final Uint8List bytes = await imgPicked.readAsBytes();
+      setState(() {
+        webImage.value = bytes;
+      });
+    }
   }
 
   @override
@@ -59,34 +61,24 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        //AppBar
-        //app Bar
+          appBar: AppBar(
+        
         title: const Text(
           "Students",
-          style: TextStyle(color: Colours.white),
+          style: TextStyle(color: Colors.white),
         ),
         backgroundColor: Colors.indigo,
         actions: [
           IconButton(
-              //Appbar Toggle button for switch to list and grid
-              onPressed: () {
-                setState(() {
-                  if (viewType == ViewType.list) {
-                    cross = 2;
-                    asspet = 2 / 2;
-                    viewType = ViewType.grid;
-                  } else {
-                    cross = 1;
-                    asspet = 3;
-                    viewType = ViewType.list;
-                  }
-                });
-              },
-              icon: Icon(
-                viewType == ViewType.list ? Icons.grid_on : Icons.view_list,
-                color: Colours.white,
-              ))
+            onPressed: () {
+              sotingBottum(context); // Show the sorting options
+            },
+            icon: const Icon(Icons.sort,color: Colors.white,),
+          ),
+          IconButton(onPressed: (){
+            Navigator.of(context).push(MaterialPageRoute(builder: (context)=>ScreenSelect()));
+          }, icon: Icon(Icons.select_all,color: Colors.white,)),
+          const SizedBox(width: 20,)
         ],
       ),
       floatingActionButton: FloatingActionButton(
@@ -111,104 +103,69 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           Expanded(
             child: ValueListenableBuilder(
-              //Getting data from List
               valueListenable: studentModelListNotifier,
-              builder: (BuildContext context, List<StudentModel> value, child) {
+              builder: (BuildContext context, value, Widget? child) {
                 List<StudentModel> filteredList = [];
-                //Searching input and list name checking
                 if (filter != null && filter!.isNotEmpty) {
                   filteredList = value
                       .where((student) => student.name
                           .toLowerCase()
                           .contains(filter!.toLowerCase()))
                       .toList();
-                } else {
-                  filteredList = value;
+                }else{
+                  filteredList =value;
                 }
-                return GridView.count(
-                  childAspectRatio: asspet,
-                  crossAxisCount: cross, //Crooss Acciss
-                  children: List.generate(filteredList.length, (index) {
-                    final data = filteredList[index];
-                    return Card(
-                      child: InkWell(
-                        onTap: () {
-                          Navigator.of(context)
-                              .push(MaterialPageRoute(builder: (ctx) {
-                            return FlullDetails(data: data);
-                          }));
-                        },
-                        child: viewType == ViewType.list //Checking ViewType
-                            ? Align(
-                                //It for displaying List
-                                child: SingleChildScrollView(
-                                  child: ListTile(
-                                    title: Text(data.name),
-                                    leading: CircleAvatar(
-                                      backgroundImage:
-                                          FileImage(File(data.profilePath)),
-                                      radius: 30,
-                                    ),
-                                    trailing: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        IconButton(
-                                            onPressed: () {
-                                               Navigator.of(context).push(MaterialPageRoute(builder: (ctx){
-                                                return UpdateStudentDetails(name: data.name, age: data.age, gName: data.gName, phone: data.phone, profilePath: data.profilePath, id: data.id!);
-                                               }));
-                                            },
-                                            icon: const Icon(Icons.edit)),
-                                        IconButton(
-                                            onPressed: () {
-                                              
-                                             Alerting.showDeleteConfirmation(context: context, title: "Delete Confirmation", subtitle: "Are you sure you want to delete this entry?",id: data.id!);
-                                            },
-                                            icon: const Icon(Icons.delete))
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              )
-                            : Column(
-                                //It for Displaying grid
-                                children: [
-                                  CircleAvatar(
-                                    radius: 50,
-                                    backgroundImage: FileImage(File(data.profilePath)),
-                                  ),
-                                  const SizedBox(
-                                    height: 10,
-                                  ),
-                                  Text(data.name),
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      IconButton(
-                                        //Delete icon
-                                        onPressed: () {
-                                           Alerting.showDeleteConfirmation(context: context, title: "Delete Confirmation", subtitle: "Are you sure you want to delete this entry?",id: data.id!);
-                                        },
-                                        icon: const Icon(Icons.delete),
-                                      ),
-                                      IconButton(
-                                        //Edite icone
-                                        onPressed: () {
-                                          Navigator.of(context).push(MaterialPageRoute(builder: (ctx){
-                                                return UpdateStudentDetails(name: data.name, age: data.age, gName: data.gName, phone: data.phone, profilePath: data.profilePath, id: data.id!);
-                                               }));
-                                        },
-                                        icon: const Icon(Icons.edit),
-                                      )
-                                    ],
-                                  )
-                                ],
-                              ),
+                if(filteredList.isEmpty && value.isNotEmpty){
+                  return const Center(child: Text("No Search Result"),);
+                }else{
+                  return ListView.separated(
+                  itemBuilder: (context, index) {
+                    return InkWell(
+                      onTap: () {
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => FlullDetails(
+                                      data: filteredList[index],
+                                    )));
+                      },
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundImage: MemoryImage(filteredList[index].profile),
+                        ),
+                        title: Text(filteredList[index].name),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                                onPressed: () {
+                                  Navigator.of(context).push(
+                                      MaterialPageRoute(builder: (context) {
+                                    return UpdateStudentDetails(
+                                      studentModel: filteredList[index],
+                                    );
+                                  }));
+                                },
+                                icon: const Icon(Icons.edit)),
+                            IconButton(
+                                onPressed: () {
+                                  Alerting.showDeleteConfirmation(
+                                      context: context, student: filteredList[index]);
+                                  print(
+                                      "${value[index].id} ----------------------------------");
+                                },
+                                icon: const Icon(Icons.delete))
+                          ],
+                        ),
                       ),
                     );
-                  }),
+                  },
+                  separatorBuilder: (context, index) {
+                    return const Divider();
+                  },
+                  itemCount: filteredList.length,
                 );
+                }
               },
             ),
           ),
@@ -247,11 +204,17 @@ class _HomeScreenState extends State<HomeScreen> {
                             height: 10,
                           ),
                           Stack(children: [
-                            CircleAvatar(
-                              //It for display image from galary
-                              radius: 60,
-                              backgroundImage:
-                                  _image != null ? FileImage(_image!) : null,
+                            ValueListenableBuilder(
+                              valueListenable: webImage,
+                              builder:
+                                  (BuildContext context, value, Widget? child) {
+                                return CircleAvatar(
+                                    //It for display image from galary
+                                    radius: 60,
+                                    backgroundImage: value != null
+                                        ? MemoryImage(value)
+                                        : null);
+                              },
                             ),
                             Positioned(
                               top: 80,
@@ -358,6 +321,66 @@ class _HomeScreenState extends State<HomeScreen> {
       },
     );
   }
+  // void sotingBottum(context){
+  //   showModalBottomSheet(context: context, builder: (context){
+  //     return Container(
+  //       width: double.infinity,
+  //       child: Column(
+  //         children: [
+  //           SizedBox(height: 20),
+  //           Container(width: double.infinity,child: TextButton(onPressed: (){
+  //             studentModelListNotifier.value = studentModelListNotifier.value.sort();
+  //             studentModelListNotifier.notifyListeners();
+  //           }, child: Text("New on top")))
+  //         ],
+  //       ),
+  //     );
+  //   });
+  // }
+  void sotingBottum(BuildContext context) {
+  showModalBottomSheet(
+    context: context,
+    builder: (context) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 20),
+            Container(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  // Sort by name (ascending)
+                  studentModelListNotifier.value.sort((a, b) => a.name.compareTo(b.name));
+                  studentModelListNotifier.notifyListeners();
+                  Navigator.of(context).pop(); // Close the bottom sheet
+                },
+                child: const Text("Sort by Name (A-Z)"),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Container(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  // Sort by name (descending)
+                  studentModelListNotifier.value.sort((a, b) => b.name.compareTo(a.name));
+                  studentModelListNotifier.notifyListeners();
+                  Navigator.of(context).pop(); // Close the bottom sheet
+                },
+                child: const Text("Sort by Name (Z-A)"),
+              ),
+            ),
+            
+          ],
+        ),
+      );
+    },
+  );
+}
+
 
   //Validating all input field
   void inputValidating(ctx) {
@@ -366,19 +389,16 @@ class _HomeScreenState extends State<HomeScreen> {
     final gName = fNameController.text;
     final phone = phoneController.text;
     if (_formKey.currentState!.validate()) {
-      if (_image != null) {
-        _image!.readAsBytes().then((Uint8List bytes) {
-          final details = StudentModel(
-              name: sname,
-              age: sage,
-              gName: gName,
-              phone: phone,
-              profilePath: _image!.path);
-          addStudent(details);
-          cleareTextField();
-          Navigator.of(ctx).pop();
-        });
-      }
+      final details = StudentModel(
+        name: sname,
+        age: sage,
+        gName: gName,
+        phone: phone,
+        profile: webImage.value!,
+      );
+      addStudent(details);
+      cleareTextField();
+      Navigator.of(ctx).pop();
     }
   }
 
@@ -388,13 +408,6 @@ class _HomeScreenState extends State<HomeScreen> {
     ageController.clear();
     fNameController.clear();
     phoneController.clear();
-    setState(() {
-      _image = null;
-    });
+    webImage.value = null;
   }
 }
-
-
-
-//for View type(grid or list)
-enum ViewType { grid, list }

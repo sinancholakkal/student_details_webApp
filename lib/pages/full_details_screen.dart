@@ -1,4 +1,4 @@
-import 'dart:io';
+
 
 import 'package:flutter/material.dart';
 import 'package:student_detiails/color/colors.dart';
@@ -7,7 +7,8 @@ import 'package:student_detiails/db/functions/data/data_model.dart';
 class FlullDetails extends StatelessWidget {
   final StudentModel data;
 
-  const FlullDetails({super.key, required this.data});
+  // const FlullDetails({super.key, required this.data});
+const FlullDetails({super.key, required this.data});
 
 
   @override
@@ -39,19 +40,19 @@ class FlullDetails extends StatelessWidget {
                     ),
                   ),
                 ),
-                Padding(
+                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 40,horizontal: 10),
-                  child: Column(
+                  child:  Column(
                     children: [
                       Card(
                         child: ListTile(
-                          title:const Text("Name"), //Student name
+                          title: const Text("Name"), //Student name
                           subtitle: Text(data.name),
                         ),
                       ),
                       Card(
                         child: ListTile(
-                          title:const Text("Age"), //Student Age
+                          title: const Text("Age"), //Student Age
                           subtitle: Text(data.age),
                         ),
                       ),
@@ -63,7 +64,7 @@ class FlullDetails extends StatelessWidget {
                       ),
                       Card(
                         child: ListTile(
-                          title:const Text("Phone"), //Student Contact number
+                          title: const Text("Phone"), //Student Contact number
                           subtitle: Text(data.phone),
                         ),
                       ),
@@ -72,14 +73,18 @@ class FlullDetails extends StatelessWidget {
                 )
               ],
             ),
-             Positioned( //Display profile
-              top: 180,
-              left: 120,
-              child: CircleAvatar(
-                radius: 70,
-                backgroundImage: FileImage(File(data.profilePath)),
-              ),
-            ),
+
+               Padding(
+                 padding:  const EdgeInsets.symmetric(vertical: 140),
+                 child: Center(
+                   child: CircleAvatar(
+                    radius: 70,
+                    //backgroundImage: FileImage(File(data.profilePath)),
+                    backgroundImage: MemoryImage(data.profile),
+                                 ),
+                 ),
+               ),
+            
         
           ],
         ),

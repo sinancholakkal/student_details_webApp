@@ -1,26 +1,13 @@
-import 'dart:io';
-
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:student_detiails/db/functions/data/data_model.dart';
 import 'package:student_detiails/db/functions/db_functions.dart';
 
 class UpdateStudentDetails extends StatefulWidget {
-  final String name;
-  final String age;
-  final String gName;
-  final String phone;
-  final String profilePath;
-  final int id;
+  StudentModel studentModel;
 
-  const UpdateStudentDetails({
-    Key? key,
-    required this.name,
-    required this.age,
-    required this.gName,
-    required this.phone,
-    required this.profilePath,
-    required this.id,
-  }) : super(key: key);
+  UpdateStudentDetails({super.key, required this.studentModel});
 
   @override
   State<UpdateStudentDetails> createState() => _UpdateStudentDetailsState();
@@ -28,45 +15,44 @@ class UpdateStudentDetails extends StatefulWidget {
 
 class _UpdateStudentDetailsState extends State<UpdateStudentDetails> {
   late TextEditingController nameController;
-  late TextEditingController profilePathController;
+  //Uint8List? profilePathController;
   late TextEditingController ageController;
-  late TextEditingController gNameController;
+  late TextEditingController fNameController;
   late TextEditingController phoneController;
+  final _formKey = GlobalKey<FormState>();
   @override
-  void initState() {
-    super.initState();
-    nameController = TextEditingController(text: widget.name);
-    ageController = TextEditingController(text: widget.age);
-    gNameController = TextEditingController(text: widget.gName);
-    phoneController = TextEditingController(text: widget.phone);
-    profilePathController = TextEditingController(text: widget.profilePath);
-    // final TextEditingController idController = TextEditingController(text: widget.id.toString());
-  }
-
   @override
   void dispose() {
     nameController.dispose();
     ageController.dispose();
-    gNameController.dispose();
+    fNameController.dispose();
     phoneController.dispose();
-    profilePathController.dispose();
+    //profilePathController.dispose();
+
     super.dispose();
   }
-  Future<void> updateStudentDetails() async {
-    await update(widget.id, nameController.text,ageController.text,gNameController.text,phoneController.text,
-        _image != null ? _image!.path : widget.profilePath);
-  }
+
+  ValueNotifier<Uint8List?> webImage = ValueNotifier(null);
 
   ImagePicker imagePicker = ImagePicker();
-  File? _image;
+
   Future<void> imagePickerFromGallery() async {
-    // Picking image from gallery
     final imgPicked = await imagePicker.pickImage(source: ImageSource.gallery);
-    setState(() {
-      if (imgPicked != null) {
-        _image = File(imgPicked.path);
-      }
-    });
+    if (imgPicked != null) {
+      final Uint8List bytes = await imgPicked.readAsBytes();
+      setState(() {
+        webImage.value = bytes;
+      });
+    }
+  }
+
+  void initState() {
+    super.initState();
+    nameController = TextEditingController(text: widget.studentModel.name);
+    ageController = TextEditingController(text: widget.studentModel.age);
+    fNameController = TextEditingController(text: widget.studentModel.gName);
+    phoneController = TextEditingController(text: widget.studentModel.phone);
+    webImage.value = widget.studentModel.profile;
   }
 
   @override
@@ -76,84 +62,118 @@ class _UpdateStudentDetailsState extends State<UpdateStudentDetails> {
         title: const Text("Update"),
       ),
       body: SingleChildScrollView(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Stack(children: [
-              CircleAvatar(
-                  //It for display image from galary
-                  radius: 60,
-                  backgroundImage: _image != null
-                      ? FileImage(_image!)
-                      : (widget.profilePath.isNotEmpty
-                          ? FileImage(File(widget.profilePath))
-                          : null)),
-              Positioned(
-                top: 80,
-                left: 60,
-                child: IconButton(
-                  //Pick the image from galery
-                  onPressed: () {
-                    imagePickerFromGallery();
+        child: Form(
+          key: _formKey, //Form key
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Stack(children: [
+                ValueListenableBuilder(
+                  valueListenable: webImage,
+                  builder: (BuildContext context, value, Widget? child) {
+                    return CircleAvatar(
+                      radius: 60,
+                      backgroundImage:
+                          value != null ? MemoryImage(value) : null,
+                    );
                   },
-                  icon: const Icon(
-                    Icons.add_a_photo,
-                    size: 30,
+                ),
+                Positioned(
+                  top: 80,
+                  left: 60,
+                  child: IconButton(
+                    //Pick the image from galery
+                    onPressed: () {
+                      imagePickerFromGallery();
+                    },
+                    icon: const Icon(
+                      Icons.add_a_photo,
+                      size: 30,
+                    ),
                   ),
                 ),
+              ]),
+              const SizedBox(
+                height: 10,
               ),
-            ]),
-            const SizedBox(
-              height: 10,
-            ),
-            Padding(
-              padding: const EdgeInsets.all(10),
-              child: TextFormField(
-                controller: nameController,
-                decoration: const InputDecoration(
-                    labelText: "Student Name",
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.all(Radius.circular(15)))),
+              Padding(
+                padding: const EdgeInsets.all(10),
+                child: TextFormField(
+                  validator: (val){
+                    if(val == null || val.isEmpty){
+                      return "Please Enter Student Name";
+                    }else{
+                      return null;
+                    }
+                  },
+                  controller: nameController,
+                  decoration: const InputDecoration(
+                      labelText: "Student Name",
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.all(Radius.circular(15)))),
+                ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(10),
-              child: TextFormField(
-                decoration: const InputDecoration(
-                    labelText: "Student Name",
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.all(Radius.circular(15)))),
-                controller: ageController,
+              Padding(
+                padding: const EdgeInsets.all(10),
+                child: TextFormField(
+                  validator: (val){
+                    if(val ==null || val.isEmpty){
+                      return "Please Enter Age";
+                    }else{
+                      return null;
+                    }
+                  },
+                  decoration: const InputDecoration(
+                      labelText: "Age",
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.all(Radius.circular(15)))),
+                  controller: ageController,
+                ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(10),
-              child: TextFormField(
-                decoration: const InputDecoration(
-                    labelText: "Student Name",
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.all(Radius.circular(15)))),
-                controller: gNameController,
+              //Father name
+              Padding(
+                padding: const EdgeInsets.all(10),
+                child: TextFormField(
+                  validator: (val){
+                    if(val==null || val.isEmpty){
+                      return "Please Enter Father Name";
+                    }else{
+                      return null;
+                    }
+                  },
+                  decoration: const InputDecoration(
+                      labelText: "Father Name",
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.all(Radius.circular(15)))),
+                  controller: fNameController,
+                ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(10),
-              child: TextFormField(
-                decoration: const InputDecoration(
-                    labelText: "Student Name",
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.all(Radius.circular(15)))),
-                controller: phoneController,
+              //Phone number
+              Padding(
+                padding: const EdgeInsets.all(10),
+                child: TextFormField(
+                  validator: (val){
+                    if(val !is int || val.length!=10){
+                      return "Please Enter Valide Number";
+                    }else{
+                      return null;
+                    }
+                  },
+                  decoration: const InputDecoration(
+                      labelText: "Phone Number",
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.all(Radius.circular(15)))),
+                  controller: phoneController,
+                ),
               ),
-            ),
-            ElevatedButton(
-                onPressed: () async {
-                  await updateStudentDetails();
-                  Navigator.of(context).pop();
-                  updateSnack(context);
-                },
-                child:const Text("Update"))
-          ],
+              ElevatedButton(
+                  onPressed: () {
+                    //await updateStudentDetails();
+                    inputValidating(context);
+                  },
+                  child: const Text("Update"))
+            ],
+          ),
         ),
       ),
     );
@@ -168,5 +188,30 @@ class _UpdateStudentDetailsState extends State<UpdateStudentDetails> {
         content: Text("Student details hase updated"),
       ),
     );
+  }
+
+  //Validating all input field
+  void inputValidating(ctx) {
+    if (_formKey.currentState!.validate()) {
+      final student = StudentModel(
+          name: nameController.text,
+          age: ageController.text,
+          gName: fNameController.text,
+          phone: phoneController.text,
+          profile: webImage.value!,
+          id: widget.studentModel.id);
+      updateStudent(student);
+      Navigator.of(context).pop();
+      updateSnack(context);
+    }
+  }
+
+  // clear Text fields after submitting
+  void cleareTextField() {
+    nameController.clear();
+    ageController.clear();
+    fNameController.clear();
+    phoneController.clear();
+    webImage.value = null;
   }
 }

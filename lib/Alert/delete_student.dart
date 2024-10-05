@@ -1,10 +1,11 @@
 
 
 import 'package:flutter/material.dart';
+import 'package:student_detiails/db/functions/data/data_model.dart';
 import 'package:student_detiails/db/functions/db_functions.dart';
 
 class Alerting{
-   static void showDeleteConfirmation({required BuildContext context,required String title,required String subtitle,required int id}) {
+   static void showDeleteConfirmation({required BuildContext context, StudentModel? student,List<int>? ids}) {
     
     showDialog(
       context: context,
@@ -21,7 +22,12 @@ class Alerting{
             ),
             TextButton(
               onPressed: () {
-                deleteStudent(id);
+                if(student==null){
+                  deleteMultiItem(ids!);
+                }else{
+                  deleteStudent(student.id);
+                }
+                
                 Navigator.of(context).pop(); // Close the dialog
               },
               child: const Text('Delete'),
